@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
   s.bindir = "bin"
   s.files         = `git ls-files`.split("\n")
   s.require_paths = ["lib"]
+  s.date = Date.today
 
   s.add_runtime_dependency('nokogiri', '~> 1.4.0')
 end

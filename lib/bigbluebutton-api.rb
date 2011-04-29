@@ -65,7 +65,7 @@ module BigBlueButton
     # salt::      Secret salt for this server
     # version::   API version: 0.64 or 0.7
     def initialize(url, salt, version='0.7', debug=false)
-      @supported_versions = ['0.7', '0.64']
+      @supported_versions = ['0.8', '0.7', '0.64']
       unless @supported_versions.include?(version)
         raise BigBlueButtonException.new("BigBlueButton error: Invalid API version #{version}. Supported versions: #{@supported_versions.join(', ')}")
       end
@@ -102,7 +102,7 @@ module BigBlueButton
                          user_id = nil, web_voice_conf = nil)
 
       params = { :meetingID => meeting_id, :password => password, :fullName => user_name }
-      if @version == '0.7'
+      if @version == '0.7' || @version == '0.8'
         params[:userID] = user_id
         params[:webVoiceConf] = web_voice_conf
       end
@@ -152,13 +152,17 @@ module BigBlueButton
                  :moderatorPW => moderator_password, :attendeePW => attendee_password,
                  :welcome => welcome_message, :dialNumber => dial_number,
                  :logoutURL => logout_url, :maxParticpants => max_participants }
-		params[:voiceBridge] = voice_bridge if @version == '0.7'
+		params[:voiceBridge] = voice_bridge if @version == '0.7' || @version == '0.8'
 		
 		if @version == '0.8'
 			params[:record] = record
-			metadata.keys.length.times{ |i|
-				params["meta_"+metadata.keys[i]] = metadata[metadata.keys[i]]
-			}
+			if metadata.nil? == false
+				metadata.keys.length.times{ |i|
+					key = "meta_" << metadata.keys[i].to_s
+					value = metadata.values[i].to_s
+					params[key] = value
+				}
+			end
 		end
 		
 		response = send_api_request(:create, params)
@@ -213,7 +217,7 @@ module BigBlueButton
       params = { :meetingID => meeting_id, :password => password, :fullName => user_name }
       if @version == '0.64'
         params[:redirectImmediately] = 0
-      elsif @version == '0.7'
+      elsif @version == '0.7' || @version == '0.8'
         params[:userID] = user_id
         params[:webVoiceConf] = web_voice_conf
       end
@@ -344,7 +348,7 @@ module BigBlueButton
 
     # Make a simple request to the server to test the connection
     def test_connection
-      if @version == '0.7'
+      if @version == '0.7' || @version == '0.8'
         response = send_api_request(:index)
       else
         response = get_meetings
@@ -375,7 +379,7 @@ module BigBlueButton
       params = data.map{ |k,v| "#{k}=" + CGI::escape(v.to_s) unless k.nil? || v.nil? }.join("&")
 
       checksum_param = params + @salt
-      checksum_param = method.to_s + checksum_param if @version == '0.7'
+      checksum_param = method.to_s + checksum_param if @version == '0.7' || @version == '0.8'
       checksum = Digest::SHA1.hexdigest(checksum_param)
 
       "#{url}#{params}&checksum=#{checksum}"

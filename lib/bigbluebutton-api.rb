@@ -119,6 +119,8 @@ module BigBlueButton
     # dialin_number::       Dial in number for conference using a regular phone
     # logout_url::          URL to return user to after exiting meeting
     # voice_bridge::        Voice conference number (>= 0.7)
+	# record::				Set if the conference should be recorded (>= 0.8)
+	# metadata::			A hash of metadata values (>= 0.8)
     #
     # === Return examples (for 0.7)
     #
@@ -138,26 +140,35 @@ module BigBlueButton
     #    :messageKey=>"duplicateWarning",
     #    :message=>"This conference was already in existence and may currently be in progress."
     #   }
+	#
+	# 
     #
     # TODO check if voice_bridge exists in 0.64
     def create_meeting(meeting_name, meeting_id, moderator_password = nil, attendee_password = nil,
                        welcome_message = nil, dial_number = nil, logout_url = nil,
-                       max_participants = nil, voice_bridge = nil)
+                       max_participants = nil, voice_bridge = nil, record = false, metadata = nil)
 
-      params = { :name => meeting_name, :meetingID => meeting_id,
+		params = { :name => meeting_name, :meetingID => meeting_id,
                  :moderatorPW => moderator_password, :attendeePW => attendee_password,
                  :welcome => welcome_message, :dialNumber => dial_number,
                  :logoutURL => logout_url, :maxParticpants => max_participants }
-      params[:voiceBridge] = voice_bridge if @version == '0.7'
+		params[:voiceBridge] = voice_bridge if @version == '0.7'
+		
+		if @version == '0.8'
+			params[:record] = record
+			metadata.keys.length.times{ |i|
+				params["meta_"+metadata.keys[i]] = metadata[metadata.keys[i]]
+			}
+		end
+		
+		response = send_api_request(:create, params)
 
-      response = send_api_request(:create, params)
+		response[:meetingID] = response[:meetingID].to_s
+		response[:moderatorPW] = response[:moderatorPW].to_s
+		response[:attendeePW] = response[:attendeePW].to_s
+		response[:hasBeenForciblyEnded] = response[:hasBeenForciblyEnded].downcase == "true"
 
-      response[:meetingID] = response[:meetingID].to_s
-      response[:moderatorPW] = response[:moderatorPW].to_s
-      response[:attendeePW] = response[:attendeePW].to_s
-      response[:hasBeenForciblyEnded] = response[:hasBeenForciblyEnded].downcase == "true"
-
-      response
+		response
     end
 
     # Ends an existing meeting. Throws BigBlueButtonException on failure.
